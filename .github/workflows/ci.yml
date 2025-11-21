@@ -24,8 +24,15 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+          --net=host
 
     steps:
+      - name: Debug commands
+        run: |
+          docker ps
+          docker image ls
+          docker network ls
+
       - name: Checkout code
         uses: actions/checkout@v3
 
