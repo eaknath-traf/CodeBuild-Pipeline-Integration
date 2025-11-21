@@ -29,9 +29,15 @@ jobs:
     steps:
       - name: Create network
         run: |
-          docker network create shared_net
-          for c in $(docker ps -q); do
-            docker network connect shared_net "$c"
+          echo -e "CONTAINER ID\tNAME\tNETWORK MODE\tNETWORKS"
+          for cid in $(docker ps -q); do
+            name=$(docker inspect -f '{{.Name}}' "$cid" | sed 's/\///')
+            netmode=$(docker inspect -f '{{.HostConfig.NetworkMode}}' "$cid")
+
+            # Extract all attached Docker networks
+            networks=$(docker inspect -f '{{range $k, $v := .NetworkSettings.Networks}}{{printf "%s " $k}}{{end}}' "$cid")
+
+            echo -e "${cid}\t${name}\t${netmode}\t${networks}"
           done
 
       - name: Debug commands
