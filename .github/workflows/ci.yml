@@ -13,7 +13,8 @@ jobs:
 
     services:
       postgres:
-        image: postgres:15
+        # image: postgres:15
+        image: public.ecr.aws/docker/library/postgres:15.15-alpine
         env:
           POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
           POSTGRES_DB: codebuild_pipeline_integration
