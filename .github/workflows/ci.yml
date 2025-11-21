@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: codebuild-test-pipeline-${{ github.run_id }}-${{ github.run_attempt }}
 
     services:
       postgres:
