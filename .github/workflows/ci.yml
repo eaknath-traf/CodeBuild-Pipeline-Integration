@@ -8,8 +8,8 @@ on:
 
 jobs:
   build-and-test:
-    # runs-on: codebuild-test-pipeline-${{ github.run_id }}-${{ github.run_attempt }}
-    runs-on: ubuntu-latest
+    runs-on: codebuild-test-pipeline-${{ github.run_id }}-${{ github.run_attempt }}
+    # runs-on: ubuntu-latest
 
     services:
       postgres:
@@ -26,8 +26,13 @@ jobs:
           --health-retries 5
 
     steps:
+      - name: Install lsof
+        run: |
+          apt-get update -y
+          apt-get install -y lsof
+
       - name: Check ports
-        run: lsof -i :5432
+        run: lsof -i :5432 || true
 
       - name: Checkout code
         uses: actions/checkout@v3
