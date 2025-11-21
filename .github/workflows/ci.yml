@@ -29,16 +29,95 @@ jobs:
     steps:
       - name: Create network
         run: |
-          echo -e "CONTAINER ID\tNAME\tNETWORK MODE\tNETWORKS"
-          for cid in $(docker ps -q); do
-            name=$(docker inspect -f '{{.Name}}' "$cid" | sed 's/\///')
-            netmode=$(docker inspect -f '{{.HostConfig.NetworkMode}}' "$cid")
+          #!/usr/bin/env bash
+          set -euo pipefail
 
-            # Extract all attached Docker networks
-            networks=$(docker inspect -f '{{range $k, $v := .NetworkSettings.Networks}}{{printf "%s " $k}}{{end}}' "$cid")
+          TARGET_NET="${1:-shared_net}"   # optional first arg to override network name
 
-            echo -e "${cid}\t${name}\t${netmode}\t${networks}"
+          # create the target network if missing
+          if ! docker network inspect "$TARGET_NET" &>/dev/null; then
+            echo "Creating network: $TARGET_NET"
+            docker network create -d bridge "$TARGET_NET"
+          else
+            echo "Network already exists: $TARGET_NET"
+          fi
+
+          # get all bridge-driver networks (includes "bridge" and any user bridge networks)
+          mapfile -t BRIDGE_NETS < <(docker network ls --filter driver=bridge --format '{{.Name}}')
+
+          # separate default 'bridge' and other bridge networks
+          DEFAULT_BRIDGE="bridge"
+          OTHER_BRIDGES=()
+          for n in "${BRIDGE_NETS[@]}"; do
+            if [[ "$n" != "$DEFAULT_BRIDGE" ]]; then
+              OTHER_BRIDGES+=("$n")
+            fi
           done
+
+          echo "Default bridge network: $DEFAULT_BRIDGE"
+          echo "Other bridge networks found: ${OTHER_BRIDGES[*]:-(none)}"
+
+          # helper to list container ids attached to a network
+          containers_on_net() {
+            local net="$1"
+            # prints container IDs (if none, prints nothing)
+            docker network inspect -f '{{range $k,$v := .Containers}}{{printf "%s\n" $k}}{{end}}' "$net" 2>/dev/null || true
+          }
+
+          # gather containers in default bridge and in other bridge networks
+          declare -A candidates=()
+
+          # containers on default bridge
+          while read -r cid; do
+            [[ -z "$cid" ]] && continue
+            candidates["$cid"]=1
+          done < <(containers_on_net "$DEFAULT_BRIDGE")
+
+          # containers on other bridge networks
+          for nb in "${OTHER_BRIDGES[@]}"; do
+            while read -r cid; do
+              [[ -z "$cid" ]] && continue
+              candidates["$cid"]=1
+            done < <(containers_on_net "$nb")
+          done
+
+          if [[ ${#candidates[@]} -eq 0 ]]; then
+            echo "No containers found on any bridge networks."
+            exit 0
+          fi
+
+          echo "Found ${#candidates[@]} candidate container(s) to attach to '$TARGET_NET'."
+
+          # process each candidate container
+          for cid in "${!candidates[@]}"; do
+            # shorten id for display
+            short="${cid:0:12}"
+            name=$(docker inspect -f '{{.Name}}' "$cid" 2>/dev/null | sed 's/^\/\?//')
+            netmode=$(docker inspect -f '{{.HostConfig.NetworkMode}}' "$cid" 2>/dev/null || echo "unknown")
+
+            # skip containers that use host network or share another container's namespace
+            if [[ "$netmode" == "host" || "$netmode" == container:* ]]; then
+              echo "SKIP $short $name (NetworkMode=$netmode) — cannot connect to additional networks."
+              continue
+            fi
+
+            # check if container already attached to TARGET_NET
+            already=$(docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{if eq $k "'"$TARGET_NET"'"}}true{{end}}{{end}}' "$cid" 2>/dev/null || echo "")
+            if [[ "$already" == "true" ]]; then
+              echo "SKIP $short $name — already attached to $TARGET_NET"
+              continue
+            fi
+
+            # attempt to connect
+            echo -n "Connecting $short $name -> $TARGET_NET ... "
+            if docker network connect "$TARGET_NET" "$cid" 2>/dev/null; then
+              echo "OK"
+            else
+              echo "FAILED (see docker logs / inspect for details)"
+            fi
+          done
+
+          echo "Done."
 
       - name: Debug commands
         run: |
