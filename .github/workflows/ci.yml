@@ -48,12 +48,14 @@ jobs:
 
       - name: Run Migrations
         env:
-          DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@postgres:5432/codebuild_pipeline_integration?schema=public
+          # DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@postgres:5432/codebuild_pipeline_integration?schema=public
+          DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@localhost:5432/codebuild_pipeline_integration?schema=public
         run: npx prisma migrate deploy
 
       - name: Run Tests
         env:
-          DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@postgres:5432/codebuild_pipeline_integration?schema=public
+          # DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@postgres:5432/codebuild_pipeline_integration?schema=public
+          DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@localhost:5432/codebuild_pipeline_integration?schema=public
         run: npm test
 
       - name: Upload Coverage
