@@ -69,6 +69,8 @@ jobs:
     # runs-on: ubuntu-latest
     runs-on: codebuild-test-pipeline-${{ github.run_id }}-${{ github.run_attempt }}
     container: public.ecr.aws/docker/library/node:24.11.1
+    environment:
+      name: manual-approval
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
