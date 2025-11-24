@@ -8,9 +8,9 @@ on:
 
 jobs:
   build-and-test-cb:
-    runs-on: codebuild-test-pipeline-${{ github.run_id }}-${{ github.run_attempt }}
-    container: public.ecr.aws/docker/library/node:24.11.1
-    # runs-on: ubuntu-latest
+    # runs-on: codebuild-test-pipeline-${{ github.run_id }}-${{ github.run_attempt }}
+    # container: public.ecr.aws/docker/library/node:24.11.1
+    runs-on: ubuntu-latest
 
     services:
       postgres:
@@ -55,3 +55,30 @@ jobs:
         env:
           DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@postgres:5432/codebuild_pipeline_integration?schema=public
         run: npm test
+
+      - name: Upload Coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage
+          path: coverage/lcov.info
+
+  sonar-scan:
+    needs: build-and-test-cb
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Download Coverage
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage
+          path: coverage
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
