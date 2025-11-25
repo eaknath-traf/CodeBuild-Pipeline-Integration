@@ -8,9 +8,10 @@ on:
 
 jobs:
   build-and-test-cb:
-    runs-on: codebuild-test-pipeline-${{ github.run_id }}-${{ github.run_attempt }}
-    container: public.ecr.aws/docker/library/node:24.11.1
+    # runs-on: codebuild-test-pipeline-${{ github.run_id }}-${{ github.run_attempt }}
+    # container: public.ecr.aws/docker/library/node:24.11.1
     # runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     services:
       postgres:
@@ -67,7 +68,8 @@ jobs:
   sonar-scan:
     needs: build-and-test-cb
     # runs-on: ubuntu-latest
-    runs-on: codebuild-test-pipeline-${{ github.run_id }}-${{ github.run_attempt }}
+    runs-on: self-hosted
+    # runs-on: codebuild-test-pipeline-${{ github.run_id }}-${{ github.run_attempt }}
     # container: public.ecr.aws/docker/library/node:24.11.1
     environment:
       name: manual-approval
