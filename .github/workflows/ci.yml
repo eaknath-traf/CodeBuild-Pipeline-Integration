@@ -8,9 +8,9 @@ on:
 
 jobs:
   build-and-test-cb:
-    # runs-on: codebuild-test-pipeline-${{ github.run_id }}-${{ github.run_attempt }}
-    # container: public.ecr.aws/docker/library/node:24.11.1
-    runs-on: ubuntu-latest
+    runs-on: codebuild-test-pipeline-${{ github.run_id }}-${{ github.run_attempt }}
+    container: public.ecr.aws/docker/library/node:24.11.1
+    # runs-on: ubuntu-latest
     # runs-on: self-hosted
 
     services:
@@ -58,14 +58,14 @@ jobs:
 
       - name: Run Migrations
         env:
-          # DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@postgres:5432/codebuild_pipeline_integration?schema=public
-          DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@localhost:5432/codebuild_pipeline_integration?schema=public
+          DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@postgres:5432/codebuild_pipeline_integration?schema=public
+          # DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@localhost:5432/codebuild_pipeline_integration?schema=public
         run: npx prisma migrate deploy
 
       - name: Run Tests
         env:
-          # DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@postgres:5432/codebuild_pipeline_integration?schema=public
-          DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@localhost:5432/codebuild_pipeline_integration?schema=public
+          DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@postgres:5432/codebuild_pipeline_integration?schema=public
+          # DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@localhost:5432/codebuild_pipeline_integration?schema=public
         run: npm test
 
       - name: Upload Coverage
@@ -82,9 +82,9 @@ jobs:
 
   sonar-scan:
     needs: build-and-test-cb
-    runs-on: ubuntu-latest
+    # runs-on: ubuntu-latest
     # runs-on: self-hosted
-    # runs-on: codebuild-test-pipeline-${{ github.run_id }}-${{ github.run_attempt }}
+    runs-on: codebuild-test-pipeline-${{ github.run_id }}-${{ github.run_attempt }}
     # container: public.ecr.aws/docker/library/node:24.11.1
     environment:
       name: manual-approval
