@@ -50,16 +50,14 @@ jobs:
       - name: Security Audit
         run: npm audit --audit-level=high
 
-      - name: Sleep 5 minutes
-        run: sleep 300
 
       - name: Build Project
         run: npm run build
 
       - name: Run Migrations
         env:
-          DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@postgres:5432/codebuild_pipeline_integration?schema=public
-          # DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@localhost:5432/codebuild_pipeline_integration?schema=public
+          # DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@postgres:5432/codebuild_pipeline_integration?schema=public
+          DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@localhost:5432/codebuild_pipeline_integration?schema=public
         run: npx prisma migrate deploy
 
       - name: Run Tests
