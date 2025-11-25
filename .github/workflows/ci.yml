@@ -44,6 +44,12 @@ jobs:
       - name: Check Prettier
         run: npm run format:check
 
+      - name: Lint Code
+        run: npm run lint
+
+      - name: Security Audit
+        run: npm audit --audit-level=high
+
       - name: Build Project
         run: npm run build
 
@@ -64,6 +70,12 @@ jobs:
         with:
           name: coverage
           path: coverage/lcov.info
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist
 
   sonar-scan:
     needs: build-and-test-cb
