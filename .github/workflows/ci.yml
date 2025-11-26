@@ -80,28 +80,40 @@ jobs:
           name: build-artifacts
           path: dist
 
-  sonar-scan:
-    needs: build-and-test-cb
-    # runs-on: ubuntu-latest
-    # runs-on: self-hosted
+  test-parallel-job:
     runs-on: codebuild-test-pipeline-${{ github.run_id }}-${{ github.run_attempt }}
     # container: public.ecr.aws/docker/library/node:24.11.1
     environment:
       name: manual-approval
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+      - name: Sleep 10 seconds
+        run: sleep 10
 
-      - name: Download Coverage
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage
-          path: coverage
+      - name: echo test
+        run: echo "This is a parallel test job."
 
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  # sonar-scan:
+  #   needs: build-and-test-cb
+  #   # runs-on: ubuntu-latest
+  #   # runs-on: self-hosted
+  #   runs-on: codebuild-test-pipeline-${{ github.run_id }}-${{ github.run_attempt }}
+  #   # container: public.ecr.aws/docker/library/node:24.11.1
+  #   environment:
+  #     name: manual-approval
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: 0
+
+  #     - name: Download Coverage
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: coverage
+  #         path: coverage
+
+  #     - name: SonarCloud Scan
+  #       uses: SonarSource/sonarcloud-github-action@master
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
