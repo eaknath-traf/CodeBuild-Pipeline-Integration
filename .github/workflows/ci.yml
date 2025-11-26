@@ -50,7 +50,7 @@ jobs:
       - name: Security Audit
         run: npm audit --audit-level=high
 
-      - name: Sleep
+      - name: Sleep 30 seconds
         run: sleep 30
 
       - name: Build Project
