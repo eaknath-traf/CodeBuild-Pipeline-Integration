@@ -80,15 +80,6 @@ jobs:
           name: build-artifacts
           path: dist
 
-  test-parallel-job:
-    runs-on: codebuild-test-pipeline-${{ github.run_id }}-${{ github.run_attempt }}
-    steps:
-      - name: Sleep 10 seconds
-        run: sleep 10
-
-      - name: echo test
-        run: echo "This is a parallel test job."
-
   # sonar-scan:
   #   needs: build-and-test-cb
   #   # runs-on: ubuntu-latest
