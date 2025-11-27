@@ -28,9 +28,17 @@ phases:
 
   build:
     commands:
-      - echo "=== BUILD PHASE ==="
-      - su - runneruser -c "cd $RUNNER_HOME && ./run.sh --once" | tee runner.log
+      - echo "=== BUILD PHASE (Runner + Log Streaming) ==="
+      - cd $RUNNER_HOME
+      - mkfifo runner.pipe
+      - (tee runner.log < runner.pipe &)
+      - su - runneruser -c "cd $RUNNER_HOME && ./run.sh --once" > runner.pipe 2>&1 &
 
+      # Keep CodeBuild alive while runner is working
+      - echo "Waiting for GitHub Actions job to finish..."
+      - while pgrep -f run.sh > /dev/null; do
+          sleep 5;
+        done
 
   post_build:
     commands:
