@@ -19,26 +19,20 @@ phases:
 
   pre_build:
     commands:
-      - echo "Configuring GitHub Runner as runneruser..."
-      - su - runneruser -c "
-          cd ~/actions-runner &&
-          ./config.sh --unattended --url $GITHUB_REPO_URL --token $RUNNER_REGISTRATION_TOKEN --labels $RUNNER_LABELS
-        "
+      - echo "Configuring GitHub Runner..."
+      - cd actions-runner
+      - ./config.sh --unattended --url $GITHUB_REPO_URL --token $RUNNER_REGISTRATION_TOKEN --labels $RUNNER_LABELS --disableupdate
       - echo "Pre-build complete."
 
   build:
     commands:
       - echo "Starting GitHub Runner (logs will stream below)..."
-      - su - runneruser -c "
-          cd ~/actions-runner &&
-          ./run.sh
-        "
+      - cd actions-runner
+      - ./run.sh
 
   post_build:
     commands:
       - echo "Post-build phase started..."
-      - su - runneruser -c "
-          cd ~/actions-runner &&
-          ./config.sh remove --unattended --token $RUNNER_REGISTRATION_TOKEN
-        "
+      - cd actions-runner
+      - ./config.sh remove --unattended --token $RUNNER_REGISTRATION_TOKEN
       - echo "Post-build complete."
