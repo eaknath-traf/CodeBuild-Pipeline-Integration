@@ -6,38 +6,40 @@ env:
     GITHUB_REPO_URL: "https://github.com/eaknath-traf/CodeBuild-Pipeline-Integration"
     RUNNER_LABELS: "codebuild"
     RUNNER_REGISTRATION_TOKEN: "BYQOQFC6XJIH6KT7XBUFRNLJFAVDY"
+    RUNNER_DIR: "/home/runneruser/actions-runner"
 
 phases:
   install:
     commands:
       - echo "=== INSTALL PHASE ==="
-      - mkdir -p "$CODEBUILD_SRC_DIR/actions-runner"
-      - cd "$CODEBUILD_SRC_DIR/actions-runner"
-      - echo "Downloading GitHub Actions Runner..."
-      - curl -O -L "$RUNNER_BINARY_URL"
-      - tar xzf "./actions-runner-linux-x64-2.309.0.tar.gz"
-      - ./bin/installdependencies.sh
+      # Create a non-root user for the runner
+      - useradd -m runneruser
+      - mkdir -p $RUNNER_DIR
+      - chown -R runneruser:runneruser $RUNNER_DIR
+      # Download and extract runner as non-root
+      - su - runneruser -c "cd ~/actions-runner && curl -O -L $RUNNER_BINARY_URL && tar xzf ./actions-runner-linux-x64-2.309.0.tar.gz && ./bin/installdependencies.sh"
       - echo "Install dependencies complete."
 
   pre_build:
     commands:
       - echo "=== PRE_BUILD PHASE ==="
-      - cd "$CODEBUILD_SRC_DIR/actions-runner"
-      - echo "Configuring GitHub Runner..."
-      - ./config.sh --unattended --url "$GITHUB_REPO_URL" --token "$RUNNER_REGISTRATION_TOKEN" --labels "$RUNNER_LABELS" --disableupdate
-      - echo "Pre-build configuration complete."
+      - su - runneruser -c "cd ~/actions-runner && ./config.sh --unattended --url $GITHUB_REPO_URL --token $RUNNER_REGISTRATION_TOKEN --labels $RUNNER_LABELS --disableupdate"
+      - echo "Pre-build complete."
 
   build:
     commands:
       - echo "=== BUILD PHASE ==="
-      - cd "$CODEBUILD_SRC_DIR/actions-runner"
-      - echo "Starting GitHub Runner (logs will stream below)..."
-      - ./run.sh
+      # Start runner in foreground so logs stream to CodeBuild
+      - su - runneruser -c "cd ~/actions-runner && ./run.sh"
+      - echo "Build phase complete."
 
   post_build:
     commands:
       - echo "=== POST_BUILD PHASE ==="
-      - cd "$CODEBUILD_SRC_DIR/actions-runner"
-      - echo "Deregistering GitHub Runner..."
-      - ./config.sh remove --unattended --token "$RUNNER_REGISTRATION_TOKEN"
+      # Remove runner registration after build finishes
+      - su - runneruser -c "cd ~/actions-runner && ./config.sh remove --unattended --token $RUNNER_REGISTRATION_TOKEN"
       - echo "Post-build complete."
+
+artifacts:
+  files:
+    - '**/*'
