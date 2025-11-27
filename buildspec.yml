@@ -18,14 +18,6 @@ phases:
 
   pre_build:
     commands:
-      - echo "Starting pre-build phase..."
-      - echo "Starting Postgres..."
-      - docker run -d --name postgres \
-          -e POSTGRES_PASSWORD=$DB_PASSWORD \
-          -e POSTGRES_DB=codebuild_pipeline_integration \
-          -p 5432:5432 \
-          postgres:15-alpine
-      - until pg_isready -h localhost -p 5432; do sleep 2; done
       - echo "Configuring GitHub Runner..."
       - ./config.sh --unattended --url $GITHUB_REPO_URL --token $RUNNER_REGISTRATION_TOKEN --labels $RUNNER_LABELS
       - echo "Pre-build complete."
