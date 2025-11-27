@@ -29,7 +29,10 @@ phases:
   build:
     commands:
       - echo "=== BUILD PHASE ==="
-      - su - runneruser -c "cd $RUNNER_HOME && ./run.sh"
+      # Run the runner; keep it alive 5 minutes to capture logs
+      - su - runneruser -c "cd $RUNNER_HOME && ./run.sh &"
+      - echo "Waiting to stream job logs..."
+      - sleep 300
 
   post_build:
     commands:
