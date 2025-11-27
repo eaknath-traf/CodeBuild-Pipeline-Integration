@@ -29,7 +29,7 @@ phases:
   build:
     commands:
       - echo "=== BUILD PHASE ==="
-      - su - runneruser -c "cd $RUNNER_HOME && ./run.sh"
+      - su - runneruser -c "cd $RUNNER_HOME && ./run.sh --once" | tee runner.log
 
 
   post_build:
