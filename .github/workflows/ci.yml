@@ -7,24 +7,86 @@ on:
     branches: [main]
 
 jobs:
-  trigger-codebuild:
-    name: Trigger AWS CodeBuild
-    runs-on: ubuntu-latest
+  build-and-test-cb:
+    # runs-on: codebuild-test-pipeline-${{ github.run_id }}-${{ github.run_attempt }}
+    # container: public.ecr.aws/docker/library/node:24.11.1
+    runs-on: [self-hosted, codebuild]
+    # runs-on: self-hosted
 
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Trigger CodeBuild Project
-        uses: aws-actions/aws-codebuild-run-build@v1
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          project-name: CodeBuild-Pipeline-Integration
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: eu-west-1
+          node-version: '18'
+          cache: 'npm'
 
-      - name: Print Build Logs URL
-        run: |
-          echo "Visit CodeBuild Console for live logs:"
-          echo "AWS → CodeBuild → CodeBuild-Pipeline-Integration → Build History"
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check Prettier
+        run: npm run format:check
+
+      - name: Lint Code
+        run: npm run lint
+
+      - name: Security Audit
+        run: npm audit --audit-level=high
+
+      - name: Sleep 30 seconds
+        run: sleep 30
+
+      - name: Build Project
+        run: npm run build
+
+      - name: Run Migrations
+        env:
+          # DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@postgres:5432/codebuild_pipeline_integration?schema=public
+          DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@localhost:5432/codebuild_pipeline_integration?schema=public
+        run: npx prisma migrate deploy
+
+      - name: Run Tests
+        env:
+          # DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@postgres:5432/codebuild_pipeline_integration?schema=public
+          DATABASE_URL: postgres://postgres:${{ secrets.DB_PASSWORD }}@localhost:5432/codebuild_pipeline_integration?schema=public
+        run: npm test
+
+      - name: Upload Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/lcov.info
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist
+
+  sonar-scan:
+    needs: build-and-test-cb
+    runs-on: ubuntu-latest
+    # runs-on: self-hosted
+    # runs-on: codebuild-test-pipeline-${{ github.run_id }}-${{ github.run_attempt }}
+    # container: public.ecr.aws/docker/library/node:24.11.1
+    environment:
+      name: manual-approval
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Download Coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage
+          path: coverage
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

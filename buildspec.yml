@@ -2,49 +2,42 @@ version: 0.2
 
 env:
   variables:
-    DATABASE_URL: "postgres://postgres:${DB_PASSWORD}@localhost:5432/codebuild_pipeline_integration?schema=public"
+    RUNNER_BINARY_URL: "https://github.com/actions/runner/releases/download/v2.309.0/actions-runner-linux-x64-2.309.0.tar.gz"
+    GITHUB_REPO_URL: "https://github.com/eaknath-traf/CodeBuild-Pipeline-Integration"
+    RUNNER_LABELS: "codebuild"
+    RUNNER_REGISTRATION_TOKEN: "BYQOQFC6XJIH6KT7XBUFRNLJFAVDY" 
 
 phases:
   install:
     commands:
-      - echo "Installing Node.js and dependencies..."
-      - curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-      - apt-get install -y nodejs postgresql-client
-      - npm ci
+      - echo "Installing GitHub Actions Runner..."
+      - mkdir actions-runner && cd actions-runner
+      - curl -O -L $RUNNER_BINARY_URL
+      - tar xzf ./actions-runner-linux-x64-2.309.0.tar.gz
+      - ./bin/installdependencies.sh
 
   pre_build:
     commands:
-      - echo "Waiting for Postgres..."
+      - echo "Starting pre-build phase..."
+      - echo "Starting Postgres..."
+      - docker run -d --name postgres \
+          -e POSTGRES_PASSWORD=$DB_PASSWORD \
+          -e POSTGRES_DB=codebuild_pipeline_integration \
+          -p 5432:5432 \
+          postgres:15-alpine
       - until pg_isready -h localhost -p 5432; do sleep 2; done
+      - echo "Configuring GitHub Runner..."
+      - ./config.sh --unattended --url $GITHUB_REPO_URL --token $RUNNER_REGISTRATION_TOKEN --labels $RUNNER_LABELS
+      - echo "Pre-build complete."
 
   build:
     commands:
-      - echo "Running Code Checks..."
-      - npm run format:check
-      - npm run lint
-      - npm audit --audit-level=high
-
-      - echo "Sleeping 30 seconds..."
-      - sleep 30
-
-      - echo "Building Project..."
-      - npm run build
-
-      - echo "Applying DB Migrations..."
-      - npx prisma migrate deploy
-
-      - echo "Running Tests..."
-      - npm test
+      - echo "Starting GitHub Runner (logs will stream below)"
+      - ./run.sh
 
   post_build:
     commands:
-      - echo "Uploading Artifacts..."
-      - mkdir -p artifacts
-      - cp -r dist artifacts/
-      - cp coverage/lcov.info artifacts/
-      - echo "Build completed successfully!"
-
-artifacts:
-  files:
-    - artifacts/**/*
-  discard-paths: yes
+      - echo "Post-build phase started..."
+      - echo "Deregistering runner..."
+      - ./config.sh remove --unattended --token $RUNNER_REGISTRATION_TOKEN
+      - echo "Post-build complete."
