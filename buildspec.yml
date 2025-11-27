@@ -2,46 +2,16 @@ version: 0.2
 
 env:
   variables:
-    RUNNER_BINARY_URL: "https://github.com/actions/runner/releases/download/v2.330.0/actions-runner-linux-x64-2.330.0.tar.gz"
     GITHUB_REPO_URL: "https://github.com/eaknath-traf/CodeBuild-Pipeline-Integration"
     RUNNER_LABELS: "codebuild"
-    RUNNER_REGISTRATION_TOKEN: "BYQOQFBDUFTY64Z6EYYLYPLJFBKLG" # replace with your token
-    RUNNER_HOME: "/home/runneruser/actions-runner"
+    RUNNER_HOME: "/actions-runner"
+    # token passed via env/parameter store or CodeBuild env var, not hard-coded
+    RUNNER_REGISTRATION_TOKEN: "BYQOQFBDUFTY64Z6EYYLYPLJFBKLG"
 
 phases:
-  install:
-    commands:
-      - echo "=== INSTALL PHASE ==="
-      - id runneruser || useradd -m runneruser
-      - mkdir -p $RUNNER_HOME
-      - chown -R runneruser:runneruser $RUNNER_HOME
-      - cd $RUNNER_HOME
-      - curl -O -L $RUNNER_BINARY_URL
-      - tar xzf ./actions-runner-linux-x64-2.330.0.tar.gz
-      - ./bin/installdependencies.sh
-      - chown -R runneruser:runneruser $RUNNER_HOME
-
-  pre_build:
-    commands:
-      - echo "=== PRE_BUILD PHASE ==="
-      - su - runneruser -c "cd $RUNNER_HOME && ./config.sh --unattended --url $GITHUB_REPO_URL --token $RUNNER_REGISTRATION_TOKEN --labels $RUNNER_LABELS --disableupdate"
-
   build:
     commands:
-      - echo "=== BUILD PHASE (Runner + Log Streaming) ==="
-      - cd $RUNNER_HOME
-      - mkfifo runner.pipe
-      - (tee runner.log < runner.pipe &)
-      - su - runneruser -c "cd $RUNNER_HOME && ./run.sh --once" > runner.pipe 2>&1 &
-
-      # Keep CodeBuild alive while runner is working
       - echo "Waiting for GitHub Actions job to finish..."
       - while pgrep -f run.sh > /dev/null; do
           sleep 5;
         done
-
-  post_build:
-    commands:
-      - echo "=== POST_BUILD PHASE ==="
-      - su - runneruser -c "cd $RUNNER_HOME && ./config.sh remove --unattended --token $RUNNER_REGISTRATION_TOKEN"
-      - echo "Post-build complete."
