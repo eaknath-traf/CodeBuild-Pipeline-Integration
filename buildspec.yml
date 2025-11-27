@@ -12,16 +12,18 @@ phases:
   install:
     commands:
       - echo "=== INSTALL PHASE ==="
-      # create a user for the runner
+      # create runner user if it doesn't exist
       - id runneruser || useradd -m runneruser
       - mkdir -p $RUNNER_HOME
       - chown -R runneruser:runneruser $RUNNER_HOME
-      # download and extract runner as root (needed for dependencies install)
+      # download and extract runner (as root)
       - cd $RUNNER_HOME
       - curl -O -L $RUNNER_BINARY_URL
       - tar xzf ./actions-runner-linux-x64-2.309.0.tar.gz
-      - echo "Installing runner dependencies (as root)..."
+      - echo "Installing runner dependencies as root..."
       - ./bin/installdependencies.sh
+      # make sure everything is owned by runneruser
+      - chown -R runneruser:runneruser $RUNNER_HOME
 
   pre_build:
     commands:
