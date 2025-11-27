@@ -10,16 +10,12 @@ env:
 phases:
   install:
     commands:
-      - echo "Creating non-root user for runner..."
-      - useradd -m runneruser
-      - echo "Installing GitHub Actions Runner as runneruser..."
-      - su - runneruser -c "
-          mkdir -p ~/actions-runner &&
-          cd ~/actions-runner &&
-          curl -O -L $RUNNER_BINARY_URL &&
-          tar xzf ./actions-runner-linux-x64-2.309.0.tar.gz &&
-          ./bin/installdependencies.sh
-        "
+    - echo "Installing GitHub Actions Runner..."
+    - mkdir -p actions-runner
+    - cd actions-runner
+    - curl -O -L $RUNNER_BINARY_URL
+    - tar xzf ./actions-runner-linux-x64-2.309.0.tar.gz
+    - ./bin/installdependencies.sh
 
   pre_build:
     commands:
