@@ -1,0 +1,50 @@
+version: 0.2
+
+env:
+  variables:
+    DATABASE_URL: "postgres://postgres:${DB_PASSWORD}@localhost:5432/codebuild_pipeline_integration?schema=public"
+
+phases:
+  install:
+    commands:
+      - echo "Installing Node.js and dependencies..."
+      - curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+      - apt-get install -y nodejs postgresql-client
+      - npm ci
+
+  pre_build:
+    commands:
+      - echo "Waiting for Postgres..."
+      - until pg_isready -h localhost -p 5432; do sleep 2; done
+
+  build:
+    commands:
+      - echo "Running Code Checks..."
+      - npm run format:check
+      - npm run lint
+      - npm audit --audit-level=high
+
+      - echo "Sleeping 30 seconds..."
+      - sleep 30
+
+      - echo "Building Project..."
+      - npm run build
+
+      - echo "Applying DB Migrations..."
+      - npx prisma migrate deploy
+
+      - echo "Running Tests..."
+      - npm test
+
+  post_build:
+    commands:
+      - echo "Uploading Artifacts..."
+      - mkdir -p artifacts
+      - cp -r dist artifacts/
+      - cp coverage/lcov.info artifacts/
+      - echo "Build completed successfully!"
+
+artifacts:
+  files:
+    - artifacts/**/*
+  discard-paths: yes
