@@ -12,34 +12,27 @@ phases:
   install:
     commands:
       - echo "=== INSTALL PHASE ==="
-      # create runner user if it doesn't exist
       - id runneruser || useradd -m runneruser
       - mkdir -p $RUNNER_HOME
       - chown -R runneruser:runneruser $RUNNER_HOME
-      # download and extract runner (as root)
       - cd $RUNNER_HOME
       - curl -O -L $RUNNER_BINARY_URL
-      - tar xzf ./actions-runner-linux-x64-2.309.0.tar.gz
-      - echo "Installing runner dependencies as root..."
+      - tar xzf ./actions-runner-linux-x64-2.330.0.tar.gz
       - ./bin/installdependencies.sh
-      # make sure everything is owned by runneruser
       - chown -R runneruser:runneruser $RUNNER_HOME
 
   pre_build:
     commands:
       - echo "=== PRE_BUILD PHASE ==="
-      - echo "Configuring GitHub Runner as runneruser..."
       - su - runneruser -c "cd $RUNNER_HOME && ./config.sh --unattended --url $GITHUB_REPO_URL --token $RUNNER_REGISTRATION_TOKEN --labels $RUNNER_LABELS --disableupdate"
 
   build:
     commands:
       - echo "=== BUILD PHASE ==="
-      - echo "Starting GitHub Runner (logs will stream below)..."
       - su - runneruser -c "cd $RUNNER_HOME && ./run.sh"
 
   post_build:
     commands:
       - echo "=== POST_BUILD PHASE ==="
-      - echo "Deregistering GitHub Runner..."
       - su - runneruser -c "cd $RUNNER_HOME && ./config.sh remove --unattended --token $RUNNER_REGISTRATION_TOKEN"
       - echo "Post-build complete."
